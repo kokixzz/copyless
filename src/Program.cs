@@ -63,12 +63,21 @@ namespace Copyless
             var mutex = new Mutex(true, MutexName, out created);
             if (!created) { Signal(ShowEventName); return 0; }
 
+            // High (not Realtime): input stays responsive under load without starving the rest of the system.
+            try
+            {
+                Process self = Process.GetCurrentProcess();
+                self.PriorityClass = ProcessPriorityClass.High;
+                self.PriorityBoostEnabled = true;
+            }
+            catch { }
+            Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.ThreadException += (s, e) => Log.Always("ui exception: " + e.Exception);
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Always("fatal: " + e.ExceptionObject);
             bool firstRun = Settings.Load();
-            try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.AboveNormal; } catch { }
             Application.Run(new TrayApp(firstRun));
             GC.KeepAlive(mutex);
             return 0;
@@ -174,7 +183,7 @@ namespace Copyless
     <Hidden>false</Hidden>
     <RunOnlyIfIdle>false</RunOnlyIfIdle>
     <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-    <Priority>4</Priority>
+    <Priority>1</Priority>
   </Settings>
   <Actions Context=""Author""><Exec><Command>""" + Esc(exe) + @"""</Command></Exec></Actions>
 </Task>";
