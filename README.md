@@ -41,14 +41,24 @@ images and video, can be copied with the built-in Windows OCR engine.
 
 ## Installation
 
-1. Run `Copyless.exe` (see [Building from source](#building-from-source)).
-2. Select **Yes** when asked to install.
+1. Download [`Copyless-Setup.exe`](https://github.com/kokixzz/copyless/releases/latest/download/Copyless-Setup.exe)
+   from the [latest release](https://github.com/kokixzz/copyless/releases/latest).
+2. Run it and select **Yes** when asked to install.
 3. Approve the User Account Control prompt.
 
-Copyless starts immediately and on every logon. The binary is not code-signed, so Windows SmartScreen
+Copyless starts immediately and on every logon. The installer is not code-signed, so Windows SmartScreen
 may show a warning on first run; select **More info**, then **Run anyway**.
 
-Running a newer `Copyless.exe` the same way updates an existing installation and keeps its settings.
+Running a newer `Copyless-Setup.exe` the same way updates an existing installation and keeps its settings.
+
+Because the installer is unsigned, it is worth checking that the download is the file that was published.
+Compare the output with the SHA-256 in the release notes:
+
+```powershell
+Get-FileHash .\Copyless-Setup.exe
+```
+
+Prefer to compile it yourself? See [Building from source](#building-from-source).
 
 | Item            | Location                                                         |
 | --------------- | ---------------------------------------------------------------- |
@@ -144,7 +154,9 @@ Run the build script from the project folder:
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-The script produces `dist\Copyless.exe`.
+The script produces `dist\Copyless.exe`, which is the same program the release ships as
+`Copyless-Setup.exe`. Run it and select **Yes** when asked to install, as in
+[Installation](#installation).
 
 | File                  | Purpose                                                 |
 | --------------------- | ------------------------------------------------------- |
