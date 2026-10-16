@@ -18,7 +18,7 @@ namespace Copyless
         readonly Toast toast;
         readonly OcrBox ocrBox;
         readonly System.Windows.Forms.Timer ocrTimer;
-        readonly Icon iconOn, iconOff;
+        Icon iconOn, iconOff;
         readonly List<string> recentApps = new List<string>();
         public readonly CopyEngine Engine;
         public readonly InputWatcher Watcher;
@@ -33,8 +33,8 @@ namespace Copyless
             ui.CreateControl();
             IntPtr force = ui.Handle;
 
-            iconOn = Icons.Tray(true);
-            iconOff = Icons.Tray(false);
+            LoadIcons();
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged += (s, e) => PostToUi(() => { LoadIcons(); UpdateTray(); });
             toast = new Toast();
             ocrBox = new OcrBox();
             ocrTimer = new System.Windows.Forms.Timer { Interval = 15 };
@@ -162,6 +162,17 @@ namespace Copyless
                     "It lives in the tray (^ next to the clock). " + (Settings.Enabled ? "It's ON." : "It's paused - click the icon."),
                     ToolTipIcon.Info)), null, -1, false);
             ThreadPool.RegisterWaitForSingleObject(quit, (o, t) => PostToUi(Quit), null, -1, true);
+        }
+
+        // Rebuilt when the Windows theme changes so the glyph stays visible on the taskbar.
+        void LoadIcons()
+        {
+            Icon on = iconOn, off = iconOff;
+            iconOn = Icons.Tray(true);
+            iconOff = Icons.Tray(false);
+            if (tray != null) tray.Icon = Settings.Enabled ? iconOn : iconOff;
+            if (on != null) on.Dispose();
+            if (off != null) off.Dispose();
         }
 
         void UpdateTray()

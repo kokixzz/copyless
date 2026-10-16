@@ -10,30 +10,91 @@ namespace Copyless
 {
     static class Icons
     {
-        public static Bitmap Draw(int size, bool on)
+        static Bitmap symbol;
+
+        /// <summary>The logo symbol, embedded from assets\symbol.png.</summary>
+        static Bitmap Symbol
+        {
+            get
+            {
+                if (symbol == null)
+                    using (Stream s = typeof(Icons).Assembly.GetManifestResourceStream("Copyless.symbol.png"))
+                        symbol = new Bitmap(s);
+                return symbol;
+            }
+        }
+
+        static Graphics HighQuality(Bitmap b)
+        {
+            Graphics g = Graphics.FromImage(b);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            g.CompositingQuality = CompositingQuality.HighQuality;
+            return g;
+        }
+
+        /// <summary>Application icon: the symbol on a white rounded tile, readable on any background.</summary>
+        public static Bitmap Tile(int size)
         {
             var b = new Bitmap(size, size, PixelFormat.Format32bppArgb);
-            using (Graphics g = Graphics.FromImage(b))
+            using (Graphics g = HighQuality(b))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                g.ScaleTransform(size / 32f, size / 32f);
-                Color bg = on ? Color.FromArgb(37, 99, 235) : Color.FromArgb(105, 108, 118);
-                using (var path = Rounded(new RectangleF(1, 1, 30, 30), 8))
-                using (var br = new SolidBrush(bg)) g.FillPath(br, path);
-                // selection highlight
-                using (var hl = new SolidBrush(Color.FromArgb(on ? 120 : 80, 255, 255, 255)))
-                    g.FillRectangle(hl, 5.5f, 11.5f, 15f, 9f);
-                using (var line = new Pen(Color.White, 2.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                var rect = new RectangleF(0.5f, 0.5f, size - 1f, size - 1f);
+                using (var path = Rounded(rect, size * 0.22f))
                 {
-                    g.DrawLine(line, 8f, 16f, 18f, 16f);
-                    // I-beam cursor
-                    g.DrawLine(line, 23.5f, 8f, 23.5f, 24f);
-                    g.DrawLine(line, 20.5f, 7f, 26.5f, 7f);
-                    g.DrawLine(line, 20.5f, 25f, 26.5f, 25f);
+                    g.FillPath(Brushes.White, path);
+                    if (size >= 24)
+                        using (var pen = new Pen(Color.FromArgb(46, 0, 0, 0), Math.Max(1f, size / 128f))) g.DrawPath(pen, path);
                 }
+                float pad = size * 0.17f;
+                g.DrawImage(Symbol, new RectangleF(pad, pad, size - 2 * pad, size - 2 * pad));
             }
             return b;
+        }
+
+        /// <summary>
+        /// Notification area glyph. Dark strokes on a light taskbar, light strokes on a dark one;
+        /// the blue accent turns grey while paused.
+        /// </summary>
+        public static Bitmap Glyph(int size, bool darkTaskbar, bool on)
+        {
+            const int work = 256;
+            using (var big = new Bitmap(work, work, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics g = HighQuality(big)) g.DrawImage(Symbol, 0, 0, work, work);
+                BitmapData data = big.LockBits(new Rectangle(0, 0, work, work), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+                var px = new byte[data.Stride * work];
+                System.Runtime.InteropServices.Marshal.Copy(data.Scan0, px, 0, px.Length);
+                for (int i = 0; i < px.Length; i += 4)
+                {
+                    if (px[i + 3] == 0) continue;
+                    byte b = px[i], gr = px[i + 1], r = px[i + 2];
+                    bool accent = b > r + 60 && b > gr + 30;
+                    if (accent && !on) { px[i] = 152; px[i + 1] = 143; px[i + 2] = 138; }
+                    else if (!accent && darkTaskbar) { px[i] = 243; px[i + 1] = 240; px[i + 2] = 240; }
+                }
+                System.Runtime.InteropServices.Marshal.Copy(px, 0, data.Scan0, px.Length);
+                big.UnlockBits(data);
+
+                var result = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+                using (Graphics g = HighQuality(result)) g.DrawImage(big, 0, 0, size, size);
+                return result;
+            }
+        }
+
+        /// <summary>True when the taskbar uses the dark theme (the Windows default).</summary>
+        public static bool DarkTaskbar()
+        {
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    object v = k == null ? null : k.GetValue("SystemUsesLightTheme");
+                    return !(v is int && (int)v == 1);
+                }
+            }
+            catch { return true; }
         }
 
         public static GraphicsPath Rounded(RectangleF r, float rad)
@@ -51,7 +112,7 @@ namespace Copyless
         public static Icon Tray(bool on)
         {
             int s = Math.Max(16, SystemInformation.SmallIconSize.Width);
-            using (Bitmap b = Draw(s, on)) return Icon.FromHandle(b.GetHicon());
+            using (Bitmap b = Glyph(s, DarkTaskbar(), on)) return Icon.FromHandle(b.GetHicon());
         }
 
         /// <summary>Writes a multi-resolution .ico file (PNG frames).</summary>
@@ -60,7 +121,7 @@ namespace Copyless
             int[] sizes = { 16, 20, 24, 32, 40, 48, 64, 128, 256 };
             var frames = new List<byte[]>();
             foreach (int s in sizes)
-                using (Bitmap b = Draw(s, true))
+                using (Bitmap b = Tile(s))
                 using (var ms = new MemoryStream()) { b.Save(ms, ImageFormat.Png); frames.Add(ms.ToArray()); }
             using (var w = new BinaryWriter(File.Create(path)))
             {

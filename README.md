@@ -1,6 +1,21 @@
-# Copyless
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+    <img src="assets/logo-light.png" alt="Copyless" width="300">
+  </picture>
+</p>
 
-Copy-on-select for Windows. Selected text is copied to the clipboard as soon as you release the mouse button.
+<p align="center">
+  Free copy-on-select for Windows. Selected text is copied to the clipboard as soon as you release the mouse button.
+</p>
+
+<p align="center">
+  <a href="https://github.com/kokixzz/copyless/releases/latest/download/Copyless-Setup.exe"><b>Download Copyless-Setup.exe</b></a>
+  &nbsp;·&nbsp;
+  <a href="#usage">Usage</a>
+  &nbsp;·&nbsp;
+  <a href="https://smilanov.com">Website</a>
+</p>
 
 Copyless brings the X11 primary selection workflow to Windows: select text in any application and it is
 ready to paste with Ctrl+V, without pressing Ctrl+C. Text that cannot be selected, such as text in games,
@@ -177,6 +192,8 @@ The script produces `dist\Copyless.exe`, which is the same program the release s
 | `src\Program.cs`      | Entry point, installer and startup task                 |
 | `src\Settings.cs`     | Settings file                                           |
 | `src\Native.cs`       | Win32 interop                                           |
+| `src\Updater.cs`      | Update check, download and verification                 |
+| `assets\`             | Logo images; `symbol.png` is embedded as the app icon   |
 
 ## Uninstalling
 

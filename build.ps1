@@ -23,7 +23,7 @@ $exe = Join-Path $build 'Copyless.exe'
 
 function Invoke-Compile($extra) {
   $out = & "$fw\csc.exe" /nologo /target:winexe /optimize+ /platform:anycpu /utf8output `
-    "/out:$exe" "/win32manifest:$root\app.manifest" @extra @refs @src 2>&1
+    "/out:$exe" "/win32manifest:$root\app.manifest" "/resource:$root\assets\symbol.png,Copyless.symbol.png" @extra @refs @src 2>&1
   $out | Where-Object { $_ -notmatch 'warning CS1701|warning CS1702' } | ForEach-Object { Write-Host $_ }
   if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 }
