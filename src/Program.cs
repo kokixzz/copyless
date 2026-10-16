@@ -199,7 +199,7 @@ namespace Copyless
 
     static class Installer
     {
-        static string Dir { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Copyless"); } }
+        public static string Dir { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Copyless"); } }
         static string Exe { get { return Path.Combine(Dir, "Copyless.exe"); } }
         static string StartMenuLink
         {

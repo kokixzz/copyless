@@ -12,7 +12,7 @@ New-Item -ItemType Directory -Force $build, $dist | Out-Null
 $version = [regex]::Match((Get-Content "$root\src\AssemblyInfo.cs" -Raw), 'AssemblyVersion\("(\d+\.\d+\.\d+)').Groups[1].Value
 
 $refs = @(
-  'System.dll', 'System.Core.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll',
+  'System.dll', 'System.Core.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll',
   "$fw\WPF\UIAutomationClient.dll", "$fw\WPF\UIAutomationTypes.dll", "$fw\WPF\WindowsBase.dll",
   "$fw\System.Runtime.dll", "$fw\System.Runtime.InteropServices.WindowsRuntime.dll", "$fw\System.Threading.Tasks.dll",
   "$wm\Windows.Foundation.winmd", "$wm\Windows.Media.winmd", "$wm\Windows.Graphics.winmd",

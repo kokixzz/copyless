@@ -15,6 +15,8 @@ namespace Copyless
         public static volatile bool MiddleClickPaste = false;
         public static volatile bool UiaFallback = true;
         public static volatile bool Debug = false;
+        public static volatile bool AutoUpdate = true;
+        public static string LastVersion = "";
         public static string ToggleHotkey = "Ctrl+Alt+C";
         public static string OcrHotkey = "Ctrl+Alt+O";
         public static string OcrDragModifiers = "Ctrl+Alt";
@@ -71,6 +73,8 @@ namespace Copyless
                     case "middleclickpaste": MiddleClickPaste = Bool(v, MiddleClickPaste); break;
                     case "accessibilityfallback": UiaFallback = Bool(v, UiaFallback); break;
                     case "debuglog": Debug = Bool(v, Debug); break;
+                    case "autoupdate": AutoUpdate = Bool(v, AutoUpdate); break;
+                    case "lastversion": LastVersion = v; break;
                     case "togglehotkey": ToggleHotkey = v; break;
                     case "ocrhotkey": OcrHotkey = v; break;
                     case "ocrdragmodifiers": OcrDragModifiers = v; break;
@@ -112,7 +116,10 @@ namespace Copyless
                 sb.AppendLine("Exclude=" + string.Join(", ", Exclude.OrderBy(s => s)));
                 sb.AppendLine("# Apps with their own I-beam cursor: always send Ctrl+C after a drag.");
                 sb.AppendLine("ForceCtrlC=" + string.Join(", ", ForceKeystroke.OrderBy(s => s)));
+                sb.AppendLine("# Check for new releases every 6 hours and install them automatically.");
+                sb.AppendLine("AutoUpdate=" + AutoUpdate);
                 sb.AppendLine("DebugLog=" + Debug);
+                sb.AppendLine("LastVersion=" + LastVersion);
                 File.WriteAllText(FilePath, sb.ToString(), new UTF8Encoding(false));
             }
             catch { }

@@ -30,7 +30,8 @@ images and video, can be copied with the built-in Windows OCR engine.
 - Works in terminals and in applications running as administrator.
 - Per-application exclusions. Graphics editors are excluded by default so that dragging still draws.
 - Keeps rich formatting when copying from browsers and office applications.
-- Runs silently in the notification area. No network access, no telemetry, no runtime dependencies beyond Windows.
+- Updates itself from the project's releases. Automatic updates can be turned off.
+- Runs silently in the notification area. No telemetry and no runtime dependencies beyond Windows.
 
 ## Requirements
 
@@ -49,7 +50,9 @@ images and video, can be copied with the built-in Windows OCR engine.
 Copyless starts immediately and on every logon. The installer is not code-signed, so Windows SmartScreen
 may show a warning on first run; select **More info**, then **Run anyway**.
 
-Running a newer `Copyless-Setup.exe` the same way updates an existing installation and keeps its settings.
+Copyless checks for new releases every 6 hours and installs them automatically. To update manually, choose
+**Check for updates** in the tray menu, or run a newer `Copyless-Setup.exe` over the existing installation.
+Settings are kept in both cases.
 
 Because the installer is unsigned, it is worth checking that the download is the file that was published.
 Compare the output with the SHA-256 in the release notes:
@@ -110,6 +113,7 @@ and are reloaded when the tray menu is opened.
 | `MinDragPixels`         | `6`          | Minimum mouse movement that counts as a selection                   |
 | `Exclude`               | see file     | Process names (without `.exe`) where nothing is copied              |
 | `ForceCtrlC`            | see file     | Process names that use a custom I-beam cursor                       |
+| `AutoUpdate`            | `True`       | Check for new releases every 6 hours and install them               |
 | `DebugLog`              | `False`      | Write diagnostic messages to `%APPDATA%\Copyless\log.txt`           |
 
 ## Command-line options
@@ -132,6 +136,10 @@ interrupted.
 
 OCR captures the selected screen area, scales it up for small text, and passes it to `Windows.Media.Ocr`.
 When more than one recognition language is installed, the result whose script best matches the text is used.
+
+Updates are checked 45 seconds after start and every 6 hours through the GitHub releases API. A newer
+installer is downloaded, verified against the size and SHA-256 published with the release and against its
+file version, and then run silently. It closes the running instance, replaces the program and starts it again.
 
 ## Known limitations
 
@@ -182,6 +190,8 @@ Settings in `%APPDATA%\Copyless` are kept and can be deleted manually.
 
 ## Privacy
 
-Copyless does not connect to the network and does not record keystrokes or clipboard contents. Selected
-text is only placed on the Windows clipboard. OCR runs locally through Windows. The optional debug log
-records application names and gesture types, never text.
+Copyless does not record keystrokes or clipboard contents. Selected text is only placed on the Windows
+clipboard. The only network access is the update check, which requests the latest release information from
+GitHub. The request identifies only the Copyless version. It can be turned off with **Update automatically** in
+the tray menu. OCR runs locally through Windows. The optional debug log records application names and
+gesture types, never text.

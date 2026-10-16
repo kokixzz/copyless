@@ -23,6 +23,9 @@ namespace Copyless
         public readonly CopyEngine Engine;
         public readonly InputWatcher Watcher;
         bool snipping;
+        System.Threading.Timer updateTimer;
+        volatile bool updating;
+        string notifiedTag;
 
         public TrayApp(bool firstRun)
         {
@@ -58,6 +61,85 @@ namespace Copyless
                 tray.ShowBalloonTip(6000, "Copyless is on",
                     "Select text anywhere and it's copied. " + Settings.OcrDragModifiers + "+drag (or " + Settings.OcrHotkey +
                     ") grabs text from games and images. Click this icon to pause.", ToolTipIcon.Info);
+            else if (Settings.LastVersion.Length > 0 && Settings.LastVersion != Updater.CurrentText)
+                tray.ShowBalloonTip(4000, "Copyless updated", "Now running version " + Updater.CurrentText + ".", ToolTipIcon.Info);
+            if (Settings.LastVersion != Updater.CurrentText)
+            {
+                Settings.LastVersion = Updater.CurrentText;
+                Settings.Save();
+            }
+
+            updateTimer = new System.Threading.Timer(s => AutoUpdate(), null, TimeSpan.FromSeconds(45), TimeSpan.FromHours(6));
+        }
+
+        // Updates
+
+        void AutoUpdate()
+        {
+            Updater.CleanUp();
+            if (!Settings.AutoUpdate || updating || !Installer.IsInstalledCopy()) return;
+            try
+            {
+                ReleaseInfo info = Updater.GetLatest();
+                if (!Updater.IsNewer(info)) return;
+                if (!Startup.IsAdmin())
+                {
+                    // Installing would need a UAC prompt; tell the user once instead of interrupting them.
+                    if (notifiedTag != info.Tag)
+                    {
+                        notifiedTag = info.Tag;
+                        PostToUi(() => tray.ShowBalloonTip(5000, "Copyless " + info.Version.ToString(3) + " is available",
+                            "Right-click the tray icon and choose Check for updates to install it.", ToolTipIcon.Info));
+                    }
+                    return;
+                }
+                updating = true;
+                Log.Write("updating to " + info.Tag);
+                Updater.Install(Updater.Download(info));
+            }
+            catch (Exception ex) { Log.Always("update: " + ex.Message); }
+            finally { updating = false; }
+        }
+
+        void CheckForUpdates()
+        {
+            if (updating) return;
+            var t = new Thread(() =>
+            {
+                ReleaseInfo info;
+                try { info = Updater.GetLatest(); }
+                catch (Exception ex)
+                {
+                    PostToUi(() => toast.Pop("Couldn't check for updates", ex.Message, true));
+                    return;
+                }
+                PostToUi(() =>
+                {
+                    if (!Updater.IsNewer(info))
+                    {
+                        toast.Pop("Copyless is up to date", "Version " + Updater.CurrentText, false);
+                        return;
+                    }
+                    if (MessageBox.Show("Copyless " + info.Version.ToString(3) + " is available. You have " + Updater.CurrentText + ".\n\nInstall it now?",
+                            "Copyless", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                        InstallUpdate(info);
+                });
+            });
+            t.IsBackground = true;
+            t.Start();
+        }
+
+        void InstallUpdate(ReleaseInfo info)
+        {
+            updating = true;
+            var t = new Thread(() =>
+            {
+                try { Updater.Install(Updater.Download(info)); }
+                catch (Exception ex) { PostToUi(() => toast.Pop("Update failed", ex.Message, true)); }
+                finally { updating = false; }
+            });
+            t.IsBackground = true;
+            t.Start();
         }
 
         public void RunOnUi(Action a)
@@ -113,7 +195,7 @@ namespace Copyless
             UpdateTray();
             menu.Items.Clear();
 
-            var title = new ToolStripMenuItem("Copyless") { Enabled = false };
+            var title = new ToolStripMenuItem("Copyless " + Updater.CurrentText) { Enabled = false };
             title.Font = new Font(menu.Font, FontStyle.Bold);
             menu.Items.Add(title);
             Check("Copy selected text automatically", Settings.ToggleHotkey, Settings.Enabled, v => { Settings.Enabled = !v; Toggle(); });
@@ -155,6 +237,9 @@ namespace Copyless
             bool startup = Startup.IsEnabled();
             var st = Check("Start with Windows", null, startup, v => { if (v) Startup.Enable(Application.ExecutablePath); else Startup.Disable(); });
             st.ToolTipText = Startup.IsAdmin() ? "Runs with admin rights so it also works in admin windows and games." : null;
+            Check("Update automatically", null, Settings.AutoUpdate, v => Settings.AutoUpdate = v)
+                .ToolTipText = "Checks for a new release every 6 hours and installs it.";
+            menu.Items.Add(new ToolStripMenuItem(updating ? "Updating..." : "Check for updates...", null, (s, e) => CheckForUpdates()) { Enabled = !updating });
             menu.Items.Add(new ToolStripMenuItem("How to use...", null, (s, e) => ShowHelp()));
             menu.Items.Add(new ToolStripMenuItem("Exit", null, (s, e) => Quit()));
         }
@@ -346,6 +431,7 @@ namespace Copyless
         public void Quit()
         {
             try { Watcher.Stop(); } catch { }
+            if (updateTimer != null) updateTimer.Dispose();
             tray.Visible = false;
             tray.Dispose();
             ExitThread();
